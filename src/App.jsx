@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Component } from 'react';
 import Generator from './components/Generator';
 import Converter from './components/Converter';
 import Display from './components/Display';
@@ -10,10 +10,59 @@ const tabs = [
   { id: 'generator', label: 'Generator' },
   { id: 'converter', label: 'Converter' },
   { id: 'display', label: 'Display' },
-  { id: 'regex', label: 'Regex' },
   { id: 'simulator', label: 'Simulator' },
-  { id: 'minimizer', label: 'Minimizer' }
+  { id: 'minimizer', label: 'Minimizer' },
+  { id: 'regex', label: 'Regex' }
 ];
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error: error.message };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught error:', error, errorInfo);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-boundary">
+          <div className="error-message">
+            <h2>Something went wrong</h2>
+            <p>{this.state.error}</p>
+            <button className="btn btn-primary" onClick={this.handleRetry}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function SafeComponent({ component: Component, fallback, ...props }) {
+  try {
+    return <Component {...props} />;
+  } catch (error) {
+    console.error('SafeComponent error:', error);
+    return fallback || (
+      <div className="error-message">
+        <p>Component failed to render: {error.message}</p>
+      </div>
+    );
+  }
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState('generator');
@@ -21,29 +70,44 @@ function App() {
   const [simulatorAutomaton, setSimulatorAutomaton] = useState(null);
 
   const handleAutomatonChange = useCallback((newAutomaton) => {
+    console.log('handleAutomatonChange called:', newAutomaton?.type);
     setAutomaton(newAutomaton);
   }, []);
 
   const handleSimulatorAutomatonChange = useCallback((newAutomaton) => {
+    console.log('handleSimulatorAutomatonChange called:', newAutomaton?.type);
     setSimulatorAutomaton(newAutomaton);
   }, []);
 
+  const handleTabClick = useCallback((tabId) => {
+    console.log('Tab clicked:', tabId);
+    setActiveTab(tabId);
+  }, []);
+
   const renderContent = () => {
+    const contentProps = {
+      onAutomatonGenerated: handleAutomatonChange,
+      automaton,
+      onAutomatonChange: handleAutomatonChange,
+      onSimulatorAutomatonChange: handleSimulatorAutomatonChange,
+      simulatorAutomaton
+    };
+
     switch (activeTab) {
       case 'generator':
-        return <Generator onAutomatonGenerated={handleAutomatonChange} />;
+        return <ErrorBoundary key="generator"><Generator {...contentProps} /></ErrorBoundary>;
       case 'converter':
-        return <Converter automaton={automaton} onAutomatonChange={handleAutomatonChange} onSimulatorAutomatonChange={handleSimulatorAutomatonChange} />;
+        return <ErrorBoundary key="converter"><Converter {...contentProps} /></ErrorBoundary>;
       case 'display':
-        return <Display automaton={automaton} onAutomatonChange={handleAutomatonChange} />;
-      case 'regex':
-        return <Regex onAutomatonGenerated={handleAutomatonChange} />;
+        return <ErrorBoundary key="display"><Display {...contentProps} /></ErrorBoundary>;
       case 'simulator':
-        return <Simulator automaton={automaton} simulatorAutomaton={simulatorAutomaton} />;
+        return <ErrorBoundary key="simulator"><Simulator {...contentProps} /></ErrorBoundary>;
       case 'minimizer':
-        return <Minimizer automaton={automaton} onAutomatonChange={handleAutomatonChange} />;
+        return <ErrorBoundary key="minimizer"><Minimizer {...contentProps} /></ErrorBoundary>;
+      case 'regex':
+        return <ErrorBoundary key="regex"><Regex {...contentProps} /></ErrorBoundary>;
       default:
-        return <Generator onAutomatonGenerated={handleAutomatonChange} />;
+        return <ErrorBoundary key="generator"><Generator {...contentProps} /></ErrorBoundary>;
     }
   };
 
@@ -59,7 +123,7 @@ function App() {
           <button
             key={tab.id}
             className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
           >
             {tab.label}
           </button>

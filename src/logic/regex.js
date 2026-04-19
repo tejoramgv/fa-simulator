@@ -192,7 +192,7 @@ class ThompsonBuilder {
   
   evaluatePostfix(postfix) {
     const stack = [];
-    
+
     for (const token of postfix) {
       if (token.type === 'symbol') {
         stack.push(this.createBasicNFA(token.value));
@@ -217,17 +217,32 @@ class ThompsonBuilder {
         if (!a || !b) continue;
         stack.push(this.concat(a, b));
       } else if (token.type === 'star' || token.type === '*') {
+        if (stack.length === 0) {
+          console.log('Star: stack is empty');
+          continue;
+        }
         const a = stack.pop();
+        if (!a) continue;
         stack.push(this.star(a));
       } else if (token.type === 'plus' || token.type === '+') {
+        if (stack.length === 0) {
+          console.log('Plus: stack is empty');
+          continue;
+        }
         const a = stack.pop();
+        if (!a) continue;
         stack.push(this.plus(a));
       } else if (token.type === 'question' || token.type === '?') {
+        if (stack.length === 0) {
+          console.log('Question: stack is empty');
+          continue;
+        }
         const a = stack.pop();
+        if (!a) continue;
         stack.push(this.question(a));
       }
     }
-    
+
     return stack[0] || this.createBasicNFA('a');
   }
   
@@ -460,93 +475,110 @@ function simplifyRegex(regex) {
 }
 
 export function testRegex(regex, testString) {
-  const nfa = regexToNFA(regex);
-  
-  let currentStates = new Set([nfa.start]);
-  
-  const epsilonClosure = (statesSet) => {
-    const closure = new Set(statesSet);
-    const stack = [...statesSet];
-    
-    while (stack.length > 0) {
-      const state = stack.pop();
-      const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
-      
-      for (const nextState of epsilonTransitions) {
-        if (!closure.has(nextState)) {
-          closure.add(nextState);
-          stack.push(nextState);
+  try {
+    const nfa = regexToNFA(regex);
+    if (!nfa || !nfa.start) return false;
+
+    let currentStates = new Set([nfa.start]);
+
+    const epsilonClosure = (statesSet) => {
+      const closure = new Set(statesSet);
+      const stack = [...statesSet];
+
+      while (stack.length > 0) {
+        const state = stack.pop();
+        if (!state) continue;
+        const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
+
+        for (const nextState of epsilonTransitions) {
+          if (nextState && !closure.has(nextState)) {
+            closure.add(nextState);
+            stack.push(nextState);
+          }
         }
       }
-    }
-    
-    return closure;
-  };
-  
-  currentStates = epsilonClosure(currentStates);
-  
-  for (const symbol of testString) {
-    const nextStates = new Set();
-    
-    for (const state of currentStates) {
-      const symbolTransitions = nfa.transitions[state]?.[symbol] || [];
-      for (const nextState of symbolTransitions) {
-        nextStates.add(nextState);
+
+      return closure;
+    };
+
+    currentStates = epsilonClosure(currentStates);
+
+    for (const symbol of testString) {
+      const nextStates = new Set();
+
+      for (const state of currentStates) {
+        if (!state) continue;
+        const symbolTransitions = nfa.transitions[state]?.[symbol] || [];
+        for (const nextState of symbolTransitions) {
+          if (nextState) nextStates.add(nextState);
+        }
       }
+
+      if (nextStates.size === 0) {
+        return false;
+      }
+
+      currentStates = epsilonClosure(nextStates);
     }
-    
-    if (nextStates.size === 0) {
-      return false;
-    }
-    
-    currentStates = epsilonClosure(nextStates);
+
+    return Array.from(currentStates).some(state => nfa.accept.includes(state));
+  } catch (err) {
+    console.error('testRegex error:', err);
+    return false;
   }
-  
-  return Array.from(currentStates).some(state => nfa.accept.includes(state));
 }
 
 export function testNFA(nfa, testString) {
-  let currentStates = new Set([nfa.start]);
-  
-  const epsilonClosure = (statesSet) => {
-    const closure = new Set(statesSet);
-    const stack = [...statesSet];
-    
-    while (stack.length > 0) {
-      const state = stack.pop();
-      const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
-      
-      for (const nextState of epsilonTransitions) {
-        if (!closure.has(nextState)) {
-          closure.add(nextState);
-          stack.push(nextState);
+  try {
+    if (!nfa || !nfa.start) return false;
+
+    let currentStates = new Set([nfa.start]);
+
+    const epsilonClosure = (statesSet) => {
+      const closure = new Set(statesSet);
+      const stack = [...statesSet];
+
+      while (stack.length > 0) {
+        const state = stack.pop();
+        if (!state) continue;
+        const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
+
+        for (const nextState of epsilonTransitions) {
+          if (nextState && !closure.has(nextState)) {
+            closure.add(nextState);
+            stack.push(nextState);
+          }
         }
       }
-    }
-    
-    return closure;
-  };
-  
-  currentStates = epsilonClosure(currentStates);
-  
-  for (const symbol of testString) {
-    const nextStates = new Set();
-    
-    for (const state of currentStates) {
-      const symbolTransitions = nfa.transitions[state]?.[symbol] || [];
-      for (const nextState of symbolTransitions) {
-        nextStates.add(nextState);
+
+      return closure;
+    };
+
+    currentStates = epsilonClosure(currentStates);
+
+    for (const symbol of testString) {
+      const nextStates = new Set();
+
+      for (const state of currentStates) {
+        if (!state) continue;
+        const symbolTransitions = nfa.transitions[state]?.[symbol] || [];
+        for (const nextState of symbolTransitions) {
+          if (nextState) nextStates.add(nextState);
+        }
       }
+
+      if (nextStates.size === 0) {
+        return false;
+      }
+
+      currentStates = epsilonClosure(nextStates);
     }
-    
-    if (nextStates.size === 0) {
-      return false;
-    }
-    
-    currentStates = epsilonClosure(nextStates);
+
+    return Array.from(currentStates).some(state => nfa.accept.includes(state));
+  } catch (err) {
+    console.error('testNFA error:', err);
+    return false;
   }
-  
-  return Array.from(currentStates).some(state => nfa.accept.includes(state));
 }
 
 export function createSampleRegexNFA() {

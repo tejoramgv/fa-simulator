@@ -28,13 +28,22 @@ export function dfaToNFA(dfa) {
 }
 
 export function simulateDFA(dfa, input) {
+  if (!dfa || !dfa.start) {
+    return {
+      accepted: false,
+      currentState: null,
+      path: [],
+      error: 'Invalid DFA'
+    };
+  }
+
   let currentState = dfa.start;
   const path = [{ state: currentState, symbol: '', step: 0 }];
-  
+
   for (let i = 0; i < input.length; i++) {
     const symbol = input[i];
     const nextState = dfa.transitions[currentState]?.[symbol];
-    
+
     if (!nextState) {
       return {
         accepted: false,
@@ -43,11 +52,11 @@ export function simulateDFA(dfa, input) {
         error: `No transition from ${currentState} on symbol '${symbol}'`
       };
     }
-    
+
     currentState = nextState;
     path.push({ state: currentState, symbol, step: i + 1 });
   }
-  
+
   const accepted = dfa.accept.includes(currentState);
   return { accepted, currentState, path };
 }
@@ -71,23 +80,25 @@ export function getTransitionTable(dfa) {
 }
 
 export function findReachableStates(dfa) {
+  if (!dfa || !dfa.start) return [];
+
   const reachable = new Set();
   const stack = [dfa.start];
-  
+
   while (stack.length > 0) {
     const state = stack.pop();
-    if (reachable.has(state)) continue;
+    if (!state || reachable.has(state)) continue;
     reachable.add(state);
-    
+
     const transitions = dfa.transitions[state] || {};
     for (const symbol of Object.keys(transitions)) {
       const nextState = transitions[symbol];
-      if (!reachable.has(nextState)) {
+      if (nextState && !reachable.has(nextState)) {
         stack.push(nextState);
       }
     }
   }
-  
+
   return Array.from(reachable);
 }
 

@@ -523,23 +523,49 @@ tr:nth-child(even) {
   overflow-y: auto;
 }
 
+.error-boundary {
+  padding: 24px;
+  text-align: center;
+}
+
+.error-boundary .error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.error-boundary h2 {
+  color: var(--error);
+  margin-bottom: 12px;
+}
+
+.tab:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.tab:active {
+  background: rgba(37, 99, 235, 0.1);
+}
+
 @media (max-width: 768px) {
   .header h1 {
     font-size: 22px;
   }
-  
+
   .grid-2 {
     grid-template-columns: 1fr;
   }
-  
+
   .comparison-container {
     grid-template-columns: 1fr;
   }
-  
+
   .tabs {
     padding: 0 12px;
   }
-  
+
   .tab {
     padding: 10px 14px;
     font-size: 13px;

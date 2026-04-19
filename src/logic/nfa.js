@@ -11,26 +11,27 @@ export function createNFA(states, alphabet, transitions, start, accept) {
 
 export function nfaToDFA(nfa, showSteps = false) {
   const steps = [];
-  
+
   const epsilonClosure = (statesSet) => {
     const closure = new Set(statesSet);
     const stack = [...statesSet];
-    
+
     while (stack.length > 0) {
       const state = stack.pop();
+      if (!state) continue;
       const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
-      
+
       for (const nextState of epsilonTransitions) {
-        if (!closure.has(nextState)) {
+        if (nextState && !closure.has(nextState)) {
           closure.add(nextState);
           stack.push(nextState);
         }
       }
     }
-    
+
     return Array.from(closure);
   };
-  
+
   const getEpsilonClosure = (statesSet) => {
     return epsilonClosure(new Set(statesSet));
   };
@@ -118,23 +119,24 @@ export function nfaToDFA(nfa, showSteps = false) {
 
 export function epsilonNFAtoNFA(enfa, showSteps = false) {
   const steps = [];
-  
+
   const epsilonClosure = (state) => {
     const closure = new Set([state]);
     const stack = [state];
-    
+
     while (stack.length > 0) {
       const currentState = stack.pop();
+      if (!currentState) continue;
       const epsilonTransitions = enfa.transitions[currentState]?.['ε'] || [];
-      
+
       for (const nextState of epsilonTransitions) {
-        if (!closure.has(nextState)) {
+        if (nextState && !closure.has(nextState)) {
           closure.add(nextState);
           stack.push(nextState);
         }
       }
     }
-    
+
     return Array.from(closure);
   };
   
@@ -182,24 +184,34 @@ export function epsilonNFAtoNFA(enfa, showSteps = false) {
 }
 
 export function simulateNFA(nfa, input) {
+  if (!nfa || !nfa.start) {
+    return {
+      accepted: false,
+      currentStates: [],
+      path: [],
+      error: 'Invalid NFA'
+    };
+  }
+
   let currentStates = new Set([nfa.start]);
-  
+
   const epsilonClosure = (statesSet) => {
     const closure = new Set(statesSet);
     const stack = [...statesSet];
-    
+
     while (stack.length > 0) {
       const state = stack.pop();
+      if (!state) continue;
       const epsilonTransitions = nfa.transitions[state]?.['ε'] || [];
-      
+
       for (const nextState of epsilonTransitions) {
-        if (!closure.has(nextState)) {
+        if (nextState && !closure.has(nextState)) {
           closure.add(nextState);
           stack.push(nextState);
         }
       }
     }
-    
+
     return closure;
   };
   
